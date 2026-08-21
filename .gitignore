@@ -1,0 +1,42 @@
+# 编译产生的目标文件
+*.o
+*.obj
+*.gch
+*.pch
+
+# 编译产生的可执行文件
+*.exe
+*.out
+*.app
+
+# 静态库和动态库
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+
+# 构建目录
+build/
+cmake-build-*/
+out/
+bin/
+lib/
+
+# 编辑器/IDE 残留文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# 调试转储文件
+core
+core.*
+vcore.*
+
+# 日志文件
+*.log
+*.pid
