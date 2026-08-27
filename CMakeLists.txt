@@ -37,7 +37,7 @@ message(STATUS "Complier default work jobs: ${CMAKE_BUILD_PARALLEL_LEVEL}")
 
 include(cmake/htOptions.cmake)
 
-add_subdirectory(src)
+add_subdirectory(htserver)
 if(HTSERVER_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
