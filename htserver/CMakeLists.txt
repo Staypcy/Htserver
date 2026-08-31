@@ -1,5 +1,14 @@
-file(GLOB_RECURSE HTSERVER_SOURCES CONFIGURE_DEPENDS *.cpp *.cc *.c)
-file(GLOB_RECURSE HTSERVER_HEADERS CONFIGURE_DEPENDS *.h *.hpp)
+#file(GLOB_RECURSE HTSERVER_SOURCES CONFIGURE_DEPENDS *.cpp *.cc *.c)
+#file(GLOB_RECURSE HTSERVER_HEADERS CONFIGURE_DEPENDS *.h *.hpp)
+file(GLOB_RECURSE HTSERVER_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.c"
+)
+file(GLOB_RECURSE HTSERVER_HEADERS CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp"
+)
 
 #后续的头文件等使用set手动管理
 #set(HTSERVER_SOURCES )
@@ -20,11 +29,11 @@ target_link_libraries(htserver PUBLIC htserver_options)#继承所有的编译选
 
 target_compile_options(htserver PRIVATE
     #主库需要严格的编译警告
-    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:
-        -Werror     #将警告视为错误（主库严格要求）
-        # -Wno-deprecated-declarations 
-    >
+    #将警告视为错误（主库严格要求）
+    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-Werror>
+    # -Wno-deprecated-declarations
 )
+
 
 install(TARGETS htserver
     EXPORT htserverTargets
