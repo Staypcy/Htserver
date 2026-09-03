@@ -1,5 +1,5 @@
-#ifndef HTSERVER_INCLUDE_HTSERVER_BUFFER_H
-#define HTSERVER_INCLUDE_HTSERVER_BUFFER_H
+#ifndef HTSERVER_SRC_HTSERVER_BUFFER_H
+#define HTSERVER_SRC_HTSERVER_BUFFER_H
 
 #include<algorithm>
 #include<array>
@@ -9,10 +9,52 @@
 #include<streambuf>
 #include<vector>
 
-namespace htserver{
+namespace htserver::detail{
 
 template<std::size_t INLINE_CAPACITY>
 class InlineBuffer {
+public:
+    void append(const char* data,std::size_t size){
+        if(size<=0){
+            return ;
+        }
+
+        if(m_overflow.empty() &&  size + m_size < INLINE_CAPACITY){
+            std::memcpy(m_inline.data() + m_size , data , size);
+            m_size+=size;
+            return ;
+        }
+
+        if(m_overflow.empty()){
+            const std::size_t required_capacity = m_size + size;
+            m_overflow.reserve(std::max(2 * INLINE_CAPACITY,required_capacity));
+            m_overflow.insert(m_overflow.end(),m_inline.data(),m_inline.data()+m_size);
+        }
+        m_overflow.insert(m_overflow.end(),data,data+size);
+        m_size=m_overflow.size();
+        return;
+    }
+
+    void append(std::string_view value){
+        append(value.data(),value.size());
+    }
+
+    void append(char value){
+        append(&value,1);
+    }
+
+    [[nodiscard]] const char* data()const noexcept{
+        return m_overflow.empty()?m_inline.data():m_overflow.data();
+    }
+
+    [[nodiscard]] std::size_t size()const noexcept{
+        return m_size;
+    }
+
+    [[nodiscard]] std::string_view view()const noexcept{
+        return {data(),size()};
+    }
+
 private:
     std::array<char, INLINE_CAPACITY> m_inline{};
     std::vector<char> m_overflow; //存放长日志
@@ -23,12 +65,12 @@ private:
 template<std::size_t INLINE_CPACITY>
 class SmallStreamBuffer final:public std::streambuf{
 public:
-    explicit SmallStreamBuffer(InlineBuffer<INLINE_CPACITY>& buffer)override
+    explicit SmallStreamBuffer(InlineBuffer<INLINE_CPACITY>& buffer)noexcept
         :m_buffer(buffer)
     {}
 
 protected:
-    std::streamsize xputn(const char* data,std::streamsize size)override{
+    std::streamsize xsputn(const char* data,std::streamsize size)override{
         if(size<=0){
             return 0;
         }
