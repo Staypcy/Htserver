@@ -12,7 +12,7 @@
 
 namespace htserver::detail {
 
-using FormattedRecordBuffer = InlineBuffer<FORMATTED_RECORD_INLINE_CAPACITY>;
+using FormattedRecordBuffer = InlineBuffer<FORMATTED_RECORE_INLINE_CAPACITY>;
 
 class Formatter final
 {
