@@ -103,7 +103,7 @@ HTSERVER_API uint64_t GetThreadId() noexcept
     return THREAD_ID;
 }
 
-HTSERVER_API void SetThreadName(std::string name)
+void SetThreadName(std::string name)
 {
     if(name.empty()){
         ASSERT_NOEFFECT2(false,"you passed empty thread name.");
@@ -115,9 +115,9 @@ HTSERVER_API void SetThreadName(std::string name)
     SetNativeThreadName(t_thread_name);
 }
 
-HTSERVER_API std::string_view GetThreadName() noexcept
+std::string_view GetThreadName() noexcept
 {
-    return HTSERVER_API std::string_view();
+    return t_thread_name;
 }
 
 } // namespace htserver
