@@ -8,7 +8,7 @@
 
 #if defined(__linux__)
 #include<pthread.h>
-#include<syscall.h>
+#include<sys/syscall.h>
 #include<unistd.h>
 #elif defined(_WIN32)
 
@@ -37,14 +37,14 @@ struct LocalFreeDeleter{
             (void)::LocalFree(value);
         }
     }
-}
+};
 #endif
 
 [[nodiscard]] std::string GetNativeThreadName()noexcept{
     try{
 #if defined(__linux__)
         std::array<char,16>native_name{};
-        if(pthread_getname_np(pthread_self(),native_name.data(),native_name.size()!=0)){
+        if(pthread_getname_np(pthread_self(),native_name.data(),native_name.size())!=0){
             return {};
         }
         return std::string(native_name.data());
@@ -70,9 +70,9 @@ struct LocalFreeDeleter{
 
 void SetNativeThreadName(std::string_view name)noexcept{
 #if defined(__linux__)
-    //linux线程名最长15个有效字节
+    //linux线程名最长15个有效字节，最后一个字节留给'\0'
     std::array<char,16>native_name{};
-    const std::size_t name_size=std::min(name.size(),native_name.size());
+    const std::size_t name_size=std::min(name.size(),native_name.size()-1);
     std::memcpy(native_name.data(),name.data(),name_size);
     (void)pthread_setname_np(pthread_self(),native_name.data());
 #elif defined(_WIN32)
@@ -96,9 +96,9 @@ HTSERVER_API uint64_t GetThreadId() noexcept
 #if defined(__linux__)
     static thread_local const uint64_t THREAD_ID =static_cast<uint64_t>(::syscall(SYS_gettid));
 #elif defined(_WIN32)
-    static thread_local const uint64_t THREAD_ID =static_cast<uint64_t>(::GetCurrentThread());
+    static thread_local const uint64_t THREAD_ID =static_cast<uint64_t>(::GetCurrentThreadId());
 #else
-    static thread_local const uint64_t THREAD_ID =static_cast<uint64_t>(std::hask<std::thread::id>{std::this_thread::get_id()});
+    static thread_local const uint64_t THREAD_ID =static_cast<uint64_t>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
 #endif
     return THREAD_ID;
 }
