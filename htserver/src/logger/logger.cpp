@@ -11,7 +11,7 @@
 
 #include"logger/appender_impl.h"
 #include"logger/buffer.h"
-#include "logger.h"
+#include<htserver/logger/logger.h>
 
 namespace htserver{
 constexpr std::string_view DEFAULT_LOG_PATTERN=
@@ -46,7 +46,8 @@ std::string_view Logger::getName() const noexcept
 void Logger::setFormatter(std::string_view pattern)
 {
     //采用std::move将所有权转移
-    m_impl->setFormatter(std::move(std::make_shared<const detail::Formatter>(pattern)));
+    auto formatter =std::make_shared<const detail::Formatter>(pattern);
+    m_impl->setFormatter(std::move(formatter));
 }
 
 std::string Logger::getFormatterPattern() const
@@ -92,7 +93,7 @@ Logger::Impl::Impl(std::string name)
 bool Logger::Impl::ShouldLog(LogLevel::Level level) const noexcept
 {
     if(static_cast<uint8_t>(level) < static_cast<uint8_t>(getLevel())){
-        return ;
+        return false;
     }
     {
         std::shared_lock<std::shared_mutex>lock(m_mutex);
@@ -130,13 +131,13 @@ void Logger::Impl::submit(const detail::LogRecordView &record) noexcept
     }
 }
 
-void Logger::Impl::setLevel(LogLevel::Level level)
+void Logger::Impl::setLevel(LogLevel::Level level)noexcept
 {
     m_level.store(level,std::memory_order_release);
 }
 
 LogLevel::Level Logger::Impl::getLevel()const noexcept{
-    m_level.load(std::memory_order_acquire);
+    return m_level.load(std::memory_order_acquire);
 }
 
 std::string_view Logger::Impl::getName()const noexcept{
@@ -184,7 +185,7 @@ void Logger::Impl::flush(){
         }
         return ;
     }
-    for(const AppenderPtr appender:m_appenders){
+    for(const AppenderPtr& appender:m_appenders){
         appender->flush();
     }
 }
@@ -198,7 +199,7 @@ void Logger::Impl::sync(){
         }
         return ;
     }
-    for(const AppenderPtr appender:m_appenders){
+    for(const AppenderPtr& appender:m_appenders){
         appender->sync();
     }
 }
