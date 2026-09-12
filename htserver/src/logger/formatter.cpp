@@ -155,7 +155,7 @@ public:
         //秒内微妙必须补齐固定六位，否则12：00：00.2144这样的时间无法解析，字典序不发排序
         std::array<char,MICROSECONDS_WIDTH> digits{};
         auto remaining = static_cast<uint32_t>(microseconds);
-        for(std::size_t index=digits.size();index>0;index--){
+        for(std::size_t index=digits.size();index>0;){
             digits[--index]=static_cast<char>('0'+remaining%10);
             remaining/=10;
         }

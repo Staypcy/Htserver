@@ -6,6 +6,20 @@
 
 namespace htserver{
 
+namespace {
+[[nodiscard]] bool EqualsIgnoreCase(std::string_view val1,std::string_view val2)noexcept{
+    if(val1.size()!=val2.size()){
+        return false;
+    }
+    for(std::size_t index=0;index<val1.size();index++){
+        if(std::toupper(static_cast<unsigned char>(val1[index]))!=val2[index]){
+            return false;
+        }
+    }
+    return true;
+}
+}
+
 std::string_view LogLevel::ToString(Level level)noexcept{
     switch(level){
 #define XX(name) case Level::LOG_LV_##name: return #name;
@@ -23,13 +37,8 @@ std::string_view LogLevel::ToString(Level level)noexcept{
 
 
 LogLevel::Level LogLevel::FromString(std::string_view value)noexcept{
-    std::array<char,6> normalized{};
-    std::transform(value.begin(),value.end(),normalized.begin(),[](unsigned char c){
-        return static_cast<char>(std::toupper(c));
-    });
 
-    const std::string_view upper_value(normalized.data(),normalized.size());
-#define XX(name) if(upper_value==#name) return Level::LOG_LV_##name;
+#define XX(name) if(EqualsIgnoreCase(value,#name)) return Level::LOG_LV_##name;
     XX(DEBUG)
     XX(INFO)
     XX(WARN)
