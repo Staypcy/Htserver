@@ -156,7 +156,7 @@ public:
         std::array<char,MICROSECONDS_WIDTH> digits{};
         auto remaining = static_cast<uint32_t>(microseconds);
         for(std::size_t index=digits.size();index>0;index--){
-            digits[index]=static_cast<char>('0'+remaining%10);
+            digits[--index]=static_cast<char>('0'+remaining%10);
             remaining/=10;
         }
         output.append(digits.data(),digits.size());

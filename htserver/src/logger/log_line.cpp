@@ -57,7 +57,7 @@ struct LogLine::Impl final{
     std::string_view m_threadName;
     InlineBuffer<LOG_MESSAGE_INLINE_CAPACITY>m_inlineBuffer;
     SmallStreamBuffer<LOG_MESSAGE_INLINE_CAPACITY>m_streamBuffer;
-    std::ostream m_stream;
+    std::ostream m_stream;  
 };
 
 LogLine::LogLine(Logger& logger,LogLevel::Level level,uint32_t line,std::string_view file_name)
@@ -65,6 +65,9 @@ LogLine::LogLine(Logger& logger,LogLevel::Level level,uint32_t line,std::string_
     static_assert(sizeof(Impl)<LOG_LINE_IMPL_SIZE,"Impl size must be looger than LOG_LINE_IMPL_SIZE.");
     static_assert(alignof(Impl)<=alignof(std::max_align_t),"logline impl must alignment");
     std::construct_at(reinterpret_cast<Impl*>(m_implStorage),logger,level,line,file_name);
+    /*等价于：placement new
+        T* q = ::new(static_cast<void*>(p)) T(std::formard<Args>(args)...);
+    */
 }
 
 LogLine::Impl &LogLine::getImpl() noexcept
