@@ -16,7 +16,7 @@ struct LogRecordView
     std::string_view m_message; // 日志内容
     std::chrono::system_clock::time_point m_timestamp; // 时间戳
     std::chrono::steady_clock::duration m_elapsed; // 起服已过时间
-    uint16_t m_threadId = 0; // 线程ID
+    uint64_t m_threadId = 0; // 线程ID
     uint64_t m_fiberId = 0; // 协程ID
     std::string_view m_threadName; // 线程名
     std::string_view m_fileName; // 文件名

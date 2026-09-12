@@ -62,20 +62,64 @@ struct LogLine::Impl final{
 
 LogLine::LogLine(Logger& logger,LogLevel::Level level,uint32_t line,std::string_view file_name)
 {
-
+    static_assert(sizeof(Impl)<LOG_LINE_IMPL_SIZE,"Impl size must be looger than LOG_LINE_IMPL_SIZE.");
+    static_assert(alignof(Impl)<=alignof(std::max_align_t),"logline impl must alignment");
+    std::construct_at(reinterpret_cast<Impl*>(m_implStorage),logger,level,line,file_name);
 }
 
 LogLine::Impl &LogLine::getImpl() noexcept
 {
-    
+    return *std::launder(reinterpret_cast<Impl*>(m_implStorage));    
 }
 
 LogLine::~LogLine()noexcept{
-
+    Impl& impl=getImpl();
+    LoggerAccess::Submit(impl.m_logger,impl.getRecord());
+    std::destroy_at(&impl);
 }
 
 std::ostream& LogLine::stream()noexcept{
+    return getImpl().m_stream;
+}
 
+void LogPrintf(Logger& logger, LogLevel::Level level, u32 line, std::string_view file_name, const char* format, ...)
+{
+    LogLine log_line(logger,level,line,file_name);
+    if(format==nullptr){
+        log_line.stream()<<"<null-format>";
+        return ;
+    }
+
+    std::array<char,PRINTF_FORMAT_INLINE_CAPACITY>inline_buffer;
+    va_list arguments;
+    va_list arguments_copy;
+    va_start(arguments,format);
+    va_copy(arguments_copy,arguments);
+    const int required_size = std::vsnprintf(inline_buffer.data(),inline_buffer.size(),format,arguments);
+    va_end(arguments);
+
+    if(required_size<0){
+        va_end(arguments_copy);
+        log_line.stream()<<"<format-error>";
+        return ;
+    }
+
+    const std::size_t message_size = static_cast<std::size_t>(required_size);
+    if(message_size<inline_buffer.size()){
+        va_end(arguments_copy);
+        log_line.stream().write(inline_buffer.data(),static_cast<std::streamsize>(message_size));
+        return ;
+    }
+
+    std::vector<char> overflow_buffer(message_size+1);
+    const int second_result=std::vsnprintf(overflow_buffer.data(),overflow_buffer.size(),format,arguments_copy);
+    va_end(arguments_copy);
+    if(second_result<0){
+        log_line.stream()<<"<format-error>";
+        return ;
+    }
+     
+    log_line.stream().write(overflow_buffer.data(),static_cast<std::streamsize>(message_size));
 }
 
 }
