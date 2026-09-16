@@ -1,9 +1,9 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.25)
 
-
-set("/usr/bin/gcc" CACHE FILEPATH "C complier" FORCE)
-set("/usr/bin/g++" CACHE FILEPATH "C++ complier" FORCE)
-
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+    set("/usr/bin/gcc" CACHE FILEPATH "C complier" FORCE)
+    set("/usr/bin/g++" CACHE FILEPATH "C++ complier" FORCE)
+endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
@@ -36,6 +36,8 @@ message(STATUS "Complier default work jobs: ${CMAKE_BUILD_PARALLEL_LEVEL}")
 
 
 include(cmake/htOptions.cmake)
+include(cmake/htserverDependencies.cmake)
+include(cmake/functions.cmake)
 
 add_subdirectory(htserver)
 if(HTSERVER_BUILD_TESTS)
@@ -45,3 +47,31 @@ endif()
 if(HTSERVER_BUILD_TOOLS)
     add_subdirectory(tools)
 endif()
+
+set(HTSERVER_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/htserver")
+
+configure_package_config_file(
+    cmake/htserverConfig.cmake.in 
+    "${CMAKE_CURRENT_BINARY_DIR}/htserverConfig.cmake"
+    INSTALL_DESTINATION "${HTSERVER_INSTALL_CMAKEDIR}"
+)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/pansConfigVersion.cmake"
+    VERSION "${PROJECT_VERSION}"
+    COMPATIBILITY SameMajorVersion
+)
+
+install(
+    FILES 
+        "${CMAKE_CURRENT_BINARY_DIR}/htserverConfig.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/htserverConfigVersion.cmake"
+    DESTINATION "${HTSERVER_INSTALL_CMAKEDIR}"
+)
+
+install(
+    EXPORT htserverTargets
+    FILE htserverTargets.cmake 
+    NAMESPACE htserver::
+    DESTINATION "${HTSERVER_INSTALL_CMAKEDIR}"
+)

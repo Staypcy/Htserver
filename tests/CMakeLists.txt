@@ -5,6 +5,7 @@ file(GLOB HTSERVER_TEST_SOURCES CONFIGURE_DEPENDS
 )
 
 list(SORT HTSERVER_TEST_SOURCES)
+redefine_file_macro("${HTSERVER_TEST_SOURCES}")
 
 find_package(Threads REQUIRED)
 

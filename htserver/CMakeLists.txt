@@ -15,7 +15,9 @@ file(GLOB_RECURSE HTSERVER_HEADERS CONFIGURE_DEPENDS
 #set(HTSERVER_HEADERS )
 
 add_library(htserver STATIC ${HTSERVER_SOURCES} ${HTSERVER_HEADERS})
+redefine_file_macro("${HTSERVER_SOURCES}")
 
+target_compile_features(htserver PUBLIC cxx_std_20)
 
 target_include_directories(htserver
     PUBLIC
@@ -26,6 +28,18 @@ target_include_directories(htserver
 )
 
 target_link_libraries(htserver PUBLIC htserver_options)#继承所有的编译选项
+
+target_link_libraries(htserver PUBLIC THreads::Threads)
+
+if(WIN32)
+    target_link_libraries(htserver PRIVATE dbghelp)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_libraries(htserver PRIVATE PkgConfig::HTSERVER::HTSERVER_LIBDW)
+endif()
+
+target_link_libraries(htserver PUBLIC yaml-cpp::yaml-cpp)
+
+add_dependencies(htserver htserver_third_party_dependencies)
 
 target_compile_options(htserver PRIVATE
     #主库需要严格的编译警告
@@ -42,6 +56,6 @@ install(TARGETS htserver
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-install(FILES ${HTSERVER_HEADERS}
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ht
-)
+install(TARGETS htserver_options EXPORT htserverTargets)
+
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

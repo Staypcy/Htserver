@@ -2,7 +2,13 @@ add_library(htserver_options INTERFACE)
 
 target_compile_options(htserver_options INTERFACE
     #GCC/Clang通用选项: -Wall基础警告 -Wextra额外警告 -Wpedantic严格遵循标准 -fno-strict-aliasing禁止严格别名优化
-    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-Wall -Wextra -Wpedantic -fno-strict-aliasing>
+    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:
+    -Wall 
+    -Wextra 
+    -Wpedantic 
+    -fno-strict-aliasing
+    -Wno-builtin-macro-redefined
+    >
 )
 
 target_compile_options(htserver_options INTERFACE
