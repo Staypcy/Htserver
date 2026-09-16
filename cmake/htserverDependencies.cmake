@@ -4,7 +4,7 @@ set(HTSERVER_THIRD_PARTY_BUILD_TYPE Release CACHE STRING "third-party build-type
 set_property(CACHE HTSERVER_THIRD_PARTY_BUILD_TYPE PROPERTY STRINGS Debug Release RelWithDebInfo MinSizeRel)
 
 option(HTSERVER_UPDATE_SUBMODULES "Initialize missing third-party git submodule" ON)
-option(HTSERVER_REUSE_INSTALLED_DEPENDENCIES "Reuse complatible dependencies from thirdparty/output" ON)
+option(HTSERVER_REUSE_INSTALLED_DEPENDENCIES "Reuse compatible dependencies from thirdparty/output" ON)
 
 # 子模块哨兵文件
 set(_htserver_required_submodules
@@ -23,7 +23,7 @@ function(htserver_init_third_party_submodules)
     set(missing_submodules)
     foreach(entry IN LISTS _htserver_required_submodules)
         string(REPLACE "|" ";" parts "${entry}")
-        list(GET parts 0 submodules_path)
+        list(GET parts 0 submodule_path)
         list(GET parts 1 sentinel)
         if(NOT EXISTS "${PROJECT_SOURCE_DIR}/${submodule_path}/${sentinel}")
         list(APPEND missing_submodules "${submodule_path}")
@@ -36,9 +36,9 @@ function(htserver_init_third_party_submodules)
 
     if(NOT HTSERVER_UPDATE_SUBMODULES)
         message(FATAL_ERROR 
-            "Missing third-party source trees: ${missing_submodule}\n"
+            "Missing third-party source trees: ${missing_submodules}\n"
             "Enable HTSERVER_UPDATE_SUBMODULES or run : \n"
-            "git submodule update --init --resoursive")
+            "git submodule update --init --recursive")
     endif()
 
     if(NOT EXISTS "${PROJECT_SOURCE_DIR}/.git")
@@ -47,7 +47,7 @@ function(htserver_init_third_party_submodules)
             "The source tree is not a git checkout, so CMake cannot initialize them.")
     endif()
 
-    if(NOT Git_FOUND)
+    if(NOT GIT_FOUND)
         message(FATAL_ERROR "Git is required to initialize missing submodules.")
     endif()
     
@@ -62,17 +62,12 @@ function(htserver_init_third_party_submodules)
 
     if(NOT submodule_result EQUAL 0)
         message(FATAL_ERROR 
-            "git submodule update failed (exit=${submodel_result}):\n"
+            "git submodule update failed (exit=${submodule_result}):\n"
             "${submodule_output}${submodule_error}")
     endif()
+
     
     foreach(entry IN LISTS _htserver_required_submodules)
-        string(REPLACE "|" ";" parts "${entry}")
-        if(NOT Git_FOUND)
-        message(FATAL_ERROR "Git is required to initialize missing submodules.")
-    endif()
-    
-    foreach(entry IN LISTS _pans_required_submodules)
         string(REPLACE "|" ";" parts "${entry}")
         list(GET parts 0 submodule_path)
         list(GET parts 1 sentinel)
@@ -87,12 +82,12 @@ endfunction()
 htserver_init_third_party_submodules()
 
 # 获取子模块commit ID 函数
-function(htserver_get_source_revision source_dir output_varible)
-    if(Git_FOUND AND EXISTS "${source_dir}/.git")
+function(htserver_get_source_revision source_dir output_variable)
+    if(GIT_FOUND AND EXISTS "${source_dir}/.git")
         execute_process(
             COMMAND "${GIT_EXECUTABLE}" -C "${source_dir}" rev-parse HEAD
             RESULT_VARIABLE revision_result
-            OUTPUT_VARIABLE revisioin
+            OUTPUT_VARIABLE revision
             ERROR_VARIABLE revision_error
             OUTPUT_STRIP_TRAILING_WHITESPACE 
         )
@@ -113,11 +108,11 @@ function(htserver_add_cmake_dependency)
     "CMAKE_ARGS;SENTINELS;DEPENDS;KEY_MATERIAL")
 
     if(NOT dep_NAME OR NOT dep_SOURCE_DIR OR NOT dep_SOURCE_REVISION)
-        message(FATAL_ERROR "pans_add_cmake_dependency requires NAME, SOURCE_DIR and SOURCE_REVISION")
+        message(FATAL_ERROR "htserver_add_cmake_dependency requires NAME, SOURCE_DIR and SOURCE_REVISION")
     endif()
 
     if(NOT dep_SENTINELS)
-        message(FATAL_ERROR "pans_add_cmake_dependency(${dep_NAME}) requires SENTINELS")
+        message(FATAL_ERROR "htserver_add_cmake_dependency(${dep_NAME}) requires SENTINELS")
     endif()
 
     string(CONCAT cache_material
@@ -126,11 +121,11 @@ function(htserver_add_cmake_dependency)
         "${CMAKE_CXX_COMPILER_VERSION};${CMAKE_SYSTEM_NAME};${CMAKE_SYSTEM_PROCESSOR};"
         "${CMAKE_GENERATOR};${CMAKE_GENERATOR_PLATFORM};${CMAKE_GENERATOR_TOOLSET};"
         "${CMAKE_OSX_ARCHITECTURES};${CMAKE_OSX_DEPLOYMENT_TARGET};"
-        "${CMAKE_MSVC_RUNTIME_LIBRARY};${PANS_THIRD_PARTY_BUILD_TYPE};static;"
+        "${CMAKE_MSVC_RUNTIME_LIBRARY};${HTSERVER_THIRD_PARTY_BUILD_TYPE};static;"
         "${dep_CMAKE_ARGS};${dep_KEY_MATERIAL}")
 
     # 保持第三方库ABI一致
-    string(SH256 cache_key "${cache_material}")
+    string(SHA256 cache_key "${cache_material}")
     string(SUBSTRING "${cache_key}" 0 16 cache_key_short)
 
     set(install_dir "${HTSERVER_THIRD_PARTY_OUTPUT_DIR}/${dep_NAME}/${cache_key_short}")
@@ -140,7 +135,7 @@ function(htserver_add_cmake_dependency)
     set(installed_outputs "${cache_stamp}")
     set(cache_complete TRUE)
     foreach(sentinel IN LISTS dep_SENTINELS)
-        if(_IS_ABSOLUTE "${sentinel}")
+        if(IS_ABSOLUTE "${sentinel}")
             set(sentinel_path "${sentinel}")
         else()
             set(sentinel_path "${install_dir}/${sentinel}")
@@ -158,12 +153,15 @@ function(htserver_add_cmake_dependency)
     set(configure_command "${CMAKE_COMMAND}" -S "${dep_SOURCE_DIR}" -B "${build_dir}" -G "${CMAKE_GENERATOR}")
 
     if(CMAKE_GENERATOR_PLATFORM)
+        list(APPEND configure_command -A "${CMAKE_GENERATOR_PLATFORM}")
+    endif()
+    if(CMAKE_GENERATOR_TOOLSET)
         list(APPEND configure_command -T "${CMAKE_GENERATOR_TOOLSET}")
     endif()
 
     list(APPEND configure_command 
         "-DCMAKE_INSTALL_PREFIX=${install_dir}"
-        "-DCMAKE_INSTALL_LINDIR=lib"
+        "-DCMAKE_INSTALL_LIBDIR=lib"
         "-DCMAKE_BUILD_TYPE=${HTSERVER_THIRD_PARTY_BUILD_TYPE}"
         "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
         "-DBUILD_TESTING=OFF"
@@ -191,9 +189,9 @@ function(htserver_add_cmake_dependency)
 
     set(build_commands
         COMMAND ${configure_command}
-        COMMAND "${CMAKE_COMMAND}" --build "${build_dir}" --config "${PANS_THIRD_PARTY_BUILD_TYPE}" --parallel "${CMAKE_BUILD_PARALLEL_LEVEL}"
-        COMMAND "${CMAKE_COMMAND}" --install "${build_dir}" --config "${PANS_THIRD_PARTY_BUILD_TYPE}"
-        COMMAND "${CMAKE_COMMAND}" "-DPANS_DEPS_STAMP_FILE=${cache_stamp}" "-DPANS_DEPS_STAMP_VALUE=${cache_key}" -P "${PROJECT_SOURCE_DIR}/cmake/writeDependencyStamp.cmake"
+        COMMAND "${CMAKE_COMMAND}" --build "${build_dir}" --config "${HTSERVER_THIRD_PARTY_BUILD_TYPE}" --parallel "${CMAKE_BUILD_PARALLEL_LEVEL}"
+        COMMAND "${CMAKE_COMMAND}" --install "${build_dir}" --config "${HTSERVER_THIRD_PARTY_BUILD_TYPE}"
+        COMMAND "${CMAKE_COMMAND}" "-DHTSERVER_DEPS_STAMP_FILE=${cache_stamp}" "-DHTSERVER_DEPS_STAMP_VALUE=${cache_key}" -P "${PROJECT_SOURCE_DIR}/cmake/writeDependencyStamp.cmake"
     )
 
     set(ready_target "htserver_dep_${dep_NAME}_ready")
@@ -201,7 +199,7 @@ function(htserver_add_cmake_dependency)
 
     if(HTSERVER_REUSE_INSTALLED_DEPENDENCIES)
         add_custom_command(
-            OUTPUT ${installed_output}
+            OUTPUT ${installed_outputs}
             ${build_commands}
             COMMENT "Building and installing third-party dependency: ${dep_NAME}"
             VERBATIM 
@@ -230,40 +228,41 @@ function(htserver_add_cmake_dependency)
     string(TOUPPER "${dep_NAME}" variable_prefix)
     string(REPLACE "-" "_" variable_prefix "${variable_prefix}")
 
-    set("PANS_${variable_prefix}_INSTALL_DIR" "${install_dir}" PARENT_SCOPE)
-    set("PANS_${variable_prefix}_CACHE_KEY" "${cache_key}" PARENT_SCOPE)
-    set("PANS_${variable_prefix}_CACHE_COMPLETE" "${cache_complete}" PARENT_SCOPE)
-    set("PANS_${variable_prefix}_DEPENDENCY_TARGET" "${ready_target}" PARENT_SCOPE)
+    set("HTSERVER_${variable_prefix}_INSTALL_DIR" "${install_dir}" PARENT_SCOPE)
+    set("HTSERVER_${variable_prefix}_CACHE_KEY" "${cache_key}" PARENT_SCOPE)
+    set("HTSERVER_${variable_prefix}_CACHE_COMPLETE" "${cache_complete}" PARENT_SCOPE)
+    set("HTSERVER_${variable_prefix}_DEPENDENCY_TARGET" "${ready_target}" PARENT_SCOPE)
 endfunction()
 
 
-set(_htserver_static_library "${CMAKE_STATIC_LIBRARY_PREFIX}@NAME${CMAKE_STATIC_LIBRARY_SUFFIX}")
+set(_htserver_static_library "${CMAKE_STATIC_LIBRARY_PREFIX}@NAME@${CMAKE_STATIC_LIBRARY_SUFFIX}")
 
 # -----------abseil-cpp----------------
 set(_htserver_absl_source "${HTSERVER_THIRD_PARTY_DIR}/abseil-cpp")
-htserver_get_source_revision("${_htserver_absl_source}" _htserver_apsl_revision)
-string(REPLACE "@NAME" "absl_base" _htserver_absl_library "${_htserver_static_library}")
+htserver_get_source_revision("${_htserver_absl_source}" _htserver_absl_revision)
+string(REPLACE "@NAME@" "absl_base" _htserver_absl_library "${_htserver_static_library}")
 htserver_add_cmake_dependency(
-    NAME absl-cpp 
+    NAME abseil-cpp 
     SOURCE_DIR "${_htserver_absl_source}"
     SOURCE_REVISION "${_htserver_absl_revision}"
     CMAKE_ARGS 
         "-DBUILD_SHARED_LIBS=OFF"
-        "-DABEL_ENABLE_INSTALL=ON"
+        "-DABSL_ENABLE_INSTALL=ON"
         "-DABSL_PROPAGATE_CXX_STD=ON"
         "-DABSL_BUILD_TESTING=OFF"
     SENTINELS
         "lib/cmake/absl/abslConfig.cmake"
         "include/absl/base/config.h"
-        "lib/${_pans_absl_library}"
+        "lib/${_htserver_absl_library}"
 )
 
 # --------------zlib----------------
 set(_htserver_zlib_source "${HTSERVER_THIRD_PARTY_DIR}/zlib")
 htserver_get_source_revision("${_htserver_zlib_source}" _htserver_zlib_revision)
-string(REPLACE "@NAME" "zlib" _htserver_zlib_library "${_htserver_zlib_library}")
 if(MSVC)
-    string(REPLACE "@NAME" "zlibstatic" _htserver_zlib_library "${_htserver_zlib_library}")
+    string(REPLACE "@NAME@" "zlibstatic" _htserver_zlib_library "${_htserver_static_library}")
+else()
+    string(REPLACE "@NAME@" "z" _htserver_zlib_library "${_htserver_static_library}")
 endif()
 htserver_add_cmake_dependency(
     NAME zlib
@@ -282,10 +281,10 @@ htserver_add_cmake_dependency(
 
 # ------------yaml-cpp--------------
 set(_htserver_yaml_source "${HTSERVER_THIRD_PARTY_DIR}/yaml-cpp")
-htserver_get_source_revision("${_htserver_yaml_source}" htserver_yaml_revision)
-string(REPLACE "@NAME" "yaml" _htserver_yaml_library "${_htserver_yaml_library}")
+htserver_get_source_revision("${_htserver_yaml_source}" _htserver_yaml_revision)
+string(REPLACE "@NAME@" "yaml-cpp" _htserver_yaml_library "${_htserver_static_library}")
 htserver_add_cmake_dependency(
-    NAME yaml
+    NAME yaml-cpp
     SOURCE_DIR "${_htserver_yaml_source}"
     SOURCE_REVISION "${_htserver_yaml_revision}"
     CMAKE_ARGS 
@@ -304,9 +303,9 @@ htserver_add_cmake_dependency(
 
 # ------------tinyxml2--------------
 set(_htserver_tinyxml2_source "${HTSERVER_THIRD_PARTY_DIR}/tinyxml2")
-pans_get_source_revision("${_htserver_tinyxml2_source}" _htserver_tinyxml2_revision)
+htserver_get_source_revision("${_htserver_tinyxml2_source}" _htserver_tinyxml2_revision)
 string(REPLACE "@NAME@" "tinyxml2" _htserver_tinyxml2_library "${_htserver_static_library}")
-pans_add_cmake_dependency(
+htserver_add_cmake_dependency(
     NAME tinyxml2
     SOURCE_DIR "${_htserver_tinyxml2_source}"
     SOURCE_REVISION "${_htserver_tinyxml2_revision}"
@@ -322,16 +321,16 @@ pans_add_cmake_dependency(
 
 # --------------kcp-----------------
 set(_htserver_kcp_source "${HTSERVER_THIRD_PARTY_DIR}/kcp")
-pans_get_source_revision("${_htserver_kcp_source}" _htserver_kcp_revision)
+htserver_get_source_revision("${_htserver_kcp_source}" _htserver_kcp_revision)
 file(SHA256 "${PROJECT_SOURCE_DIR}/cmake/kcp/CMakeLists.txt" _htserver_kcp_wrapper_hash)
 string(REPLACE "@NAME@" "kcp" _htserver_kcp_library "${_htserver_static_library}")
-pans_add_cmake_dependency(
+htserver_add_cmake_dependency(
     NAME kcp
     SOURCE_DIR "${PROJECT_SOURCE_DIR}/cmake/kcp"
     SOURCE_REVISION "${_htserver_kcp_revision}"
     KEY_MATERIAL "wrapper=${_htserver_kcp_wrapper_hash}"
     CMAKE_ARGS
-        "-DPANS_KCP_SOURCE_DIR=${_htserver_kcp_source}"
+        "-DHTSERVER_KCP_SOURCE_DIR=${_htserver_kcp_source}"
         "-DBUILD_SHARED_LIBS=OFF"
     SENTINELS
         "lib/cmake/kcp/kcp-config.cmake"
@@ -340,7 +339,7 @@ pans_add_cmake_dependency(
 )
 # -------------protobuf----------------
 set(_htserver_protobuf_source "${HTSERVER_THIRD_PARTY_DIR}/protobuf")
-pans_get_source_revision("${_htserver_protobuf_source}" _htserver_protobuf_revision)
+htserver_get_source_revision("${_htserver_protobuf_source}" _htserver_protobuf_revision)
 string(REPLACE "@NAME@" "protobuf" _htserver_protobuf_library "${_htserver_static_library}")
 if(MSVC)
     string(REPLACE "@NAME@" "libprotobuf" _htserver_protobuf_library "${_htserver_static_library}")
@@ -402,16 +401,16 @@ find_package(Threads REQUIRED)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(PkgConfig REQUIRED)
-    pkg_check_module(HTSERVER REQUIRED IMPORTED_TARGET libdw)
+    pkg_check_modules(HTSERVER REQUIRED IMPORTED_TARGET libdw)
 endif()
 
-if(HTSERVER_YAML_CPP_COMPLETE)
+if(HTSERVER_YAML_CPP_CACHE_COMPLETE)
     find_package(yaml-cpp CONFIG REQUIRED PATHS "${HTSERVER_YAML_CPP_INSTALL_DIR}" NO_DEFAULT_PATH)
 else()
     file(MAKE_DIRECTORY "${HTSERVER_YAML_CPP_INSTALL_DIR}/include")
     add_library(yaml-cpp::yaml-cpp STATIC IMPORTED GLOBAL)
-    set_target_properties(yaml-cpp::yaml-cpp EXPORT_PROPERTIES
-        IMPORTED_LOCATION "${HTSERVER_YAML_CPP_INSTALL_DIR}/lib/_htserver_yaml_library"
+    set_target_properties(yaml-cpp::yaml-cpp PROPERTIES
+        IMPORTED_LOCATION "${HTSERVER_YAML_CPP_INSTALL_DIR}/lib/${_htserver_yaml_library}"
         INTERFACE_COMPILE_DEFINITIONS YAML_CPP_STATIC_DEFINE
         INTERFACE_INCLUDE_DIRECTORIES "${HTSERVER_YAML_CPP_INSTALL_DIR}/include"
     )
