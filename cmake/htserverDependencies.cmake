@@ -401,7 +401,7 @@ find_package(Threads REQUIRED)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(PkgConfig REQUIRED)
-    pkg_check_modules(HTSERVER REQUIRED IMPORTED_TARGET libdw)
+    pkg_check_modules(HTSERVER_LIBDW REQUIRED IMPORTED_TARGET libdw)
 endif()
 
 if(HTSERVER_YAML_CPP_CACHE_COMPLETE)

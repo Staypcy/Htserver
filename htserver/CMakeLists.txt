@@ -29,12 +29,12 @@ target_include_directories(htserver
 
 target_link_libraries(htserver PUBLIC htserver_options)#继承所有的编译选项
 
-target_link_libraries(htserver PUBLIC THreads::Threads)
+target_link_libraries(htserver PUBLIC Threads::Threads)
 
 if(WIN32)
     target_link_libraries(htserver PRIVATE dbghelp)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    target_link_libraries(htserver PRIVATE PkgConfig::HTSERVER::HTSERVER_LIBDW)
+    target_link_libraries(htserver PRIVATE PkgConfig::HTSERVER_LIBDW)
 endif()
 
 target_link_libraries(htserver PUBLIC yaml-cpp::yaml-cpp)

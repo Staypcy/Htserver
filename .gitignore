@@ -40,3 +40,5 @@ vcore.*
 # 日志文件
 *.log
 *.pid
+# 第三方库构建输出
+/third_party/output/
