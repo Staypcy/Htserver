@@ -22,6 +22,7 @@ cmake-build-*/
 out/
 bin/
 lib/
+output/
 
 # 编辑器/IDE 残留文件
 .vscode/
