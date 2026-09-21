@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(htserver-kcp LANGUAGE C)
+project(htserver-kcp LANGUAGES C)
 
 include(GNUInstallDirs)
 

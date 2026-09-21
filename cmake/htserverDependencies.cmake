@@ -250,6 +250,8 @@ htserver_add_cmake_dependency(
         "-DABSL_ENABLE_INSTALL=ON"
         "-DABSL_PROPAGATE_CXX_STD=ON"
         "-DABSL_BUILD_TESTING=OFF"
+        "-DCMAKE_CXX_STANDARD=17"
+        "-DCMAKE_CXX_STANDARD_REQUIRED=ON"
     SENTINELS
         "lib/cmake/absl/abslConfig.cmake"
         "include/absl/base/config.h"

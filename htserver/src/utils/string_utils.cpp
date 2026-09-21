@@ -3,6 +3,7 @@
 
 #include<htserver/utils/string_utils.h>
 #include<htserver/macros.h>
+#include<htserver/types.h>
 
 namespace htserver{
 

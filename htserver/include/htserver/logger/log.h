@@ -33,7 +33,7 @@ private:
     [[nodiscard]] Impl& getImpl()noexcept;
 };
 
-HTSERVER_API void LogPrintf(Logger& logger, LogLevel::Level level, u32 line, std::string_view file_name, const char* format, ...);
+HTSERVER_API void LogPrintf(Logger& logger, LogLevel::Level level, uint32_t line, std::string_view file_name, const char* format, ...);
 
 } // namespace htserver::detail
 

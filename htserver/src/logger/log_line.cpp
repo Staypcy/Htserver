@@ -23,7 +23,7 @@ struct LogLine::Impl final{
         ,m_line(line)
         ,m_fileName(file_name)
         ,m_timestamp(std::chrono::system_clock::now())
-        ,m_elapsed(GetElapsedTIme())
+        ,m_elapsed(GetElapsedTime())
         ,m_threadId(GetThreadId())
         ,m_fiberId(GetFiberId())
         ,m_threadName(GetThreadName())
@@ -85,7 +85,7 @@ std::ostream& LogLine::stream()noexcept{
     return getImpl().m_stream;
 }
 
-void LogPrintf(Logger& logger, LogLevel::Level level, u32 line, std::string_view file_name, const char* format, ...)
+void LogPrintf(Logger& logger, LogLevel::Level level, uint32_t line, std::string_view file_name, const char* format, ...)
 {
     LogLine log_line(logger,level,line,file_name);
     if(format==nullptr){

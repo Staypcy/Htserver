@@ -1,5 +1,10 @@
-#include<logger/formatter.h>
 #include<unordered_map>
+#include<charconv>
+#include<ctime>
+#include<array>
+
+#include<logger/formatter.h>
+#include<htserver/macros.h>
 
 namespace htserver::detail {
 
@@ -147,7 +152,7 @@ public:
     void format(const LogRecordView& record, FormattedRecordBuffer& output) const override
     {
         const auto total_microseconds=std::chrono::duration_cast<std::chrono::microseconds>(record.m_timestamp.time_since_epoch()).count();
-        s64 microseconds=total_microseconds%1'000'000;
+        int64_t microseconds=total_microseconds%1'000'000;
         if(microseconds<0){
             microseconds+=1'000'000;
         }

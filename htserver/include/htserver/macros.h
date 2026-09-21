@@ -9,14 +9,14 @@
 #define HTSERVER_ASSERT(x) \
     if(!(x))[[unlikely]]\
     { \
-        HTSERVER_LOG(HTSERVER_LOG_ROOT())<<__FILE__<<":"<<__LINE__<<"ASSERT FAILED: "<<#x<<"\nStacktrace:\n"<<htserver::GetBacktrace(); \
+        HTSERVER_LOG_FATAL(HTSERVER_LOG_ROOT())<<__FILE__<<":"<<__LINE__<<"ASSERT FAILED: "<<#x<<"\nStacktrace:\n"<<htserver::GetBacktrace(); \
         assert(x); \
     }else{}
 
 #define HTSERVER_ASSERT2(x,w) \
     if(!(x))[[unlikely]] \
     { \
-        HTSERVER_LOG(HTSERVER_LOG_ROOT())<<__FILE__<<__LINE__<<"Assert "<<#x<<" failed. ["<<w<<"].\nStacktrace :\n"<<htserver::GetBacktrace(); \
+        HTSERVER_LOG_FATAL(HTSERVER_LOG_ROOT())<<__FILE__<<__LINE__<<"Assert "<<#x<<" failed. ["<<w<<"].\nStacktrace :\n"<<htserver::GetBacktrace(); \
         assert(x); \
     }else{}
 
