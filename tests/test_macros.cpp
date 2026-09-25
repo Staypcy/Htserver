@@ -1,4 +1,5 @@
 #include<htserver/macros.h>
+#include<htserver/types.h>
 #include<iostream>
 #include<type_traits>
 #include <limits>
