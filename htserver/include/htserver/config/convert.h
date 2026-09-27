@@ -82,5 +82,5 @@ requires std::is_arithmetic_v<T> && (!std::is_same_v<std::remove_cv_t<T>, bool>)
 }
 
 }
-
+}
 #endif //HTSERVER_INCLUDE_HTSERVER_CONFIG_CONVERT_H
