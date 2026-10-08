@@ -81,6 +81,180 @@ requires std::is_arithmetic_v<T> && (!std::is_same_v<std::remove_cv_t<T>, bool>)
     return YAML::Node(std::string(buffer, static_cast<std::size_t>(result.ptr - buffer)));
 }
 
+template<typename T>
+concept YamlDecodable = requires(const YAML::Node& node, T& value)
+{
+    {YAML::convert<T>::decode(node, value)}->std::convertible_to<bool>;
+};
+
+template<typename T>
+concept YamlEncodable = requires(const T& value)
+{
+    {YAML::convert<T>::encode(value)}->std::convertible_to<YAML::Node>;
+};
+} // namespace detail
+
+template<typename T>
+class ConfigConvert{
+public:
+    [[nodiscard]] static T FromNode(const YAML::Node& node)
+    {
+        std::string_view type_name = TypeName<T>();
+          
+        if constexpr (std::is_same_v<std::remove_cv_t<T>,bool>){
+            bool value = false;
+            if(!node.IsDefined() || !detail::ParseBool(node,value)){
+                detail::ThrowConvertError(type_name,"无法解析为布尔值");
+            }
+            value = detail::ScalarText(node,type_name);
+            return value;
+        }
+        else if constexpr (std::is_same_v<T,std::string){
+            if(!node.IsDefined() || !node.IsScalar()){
+                detail::ThrowConvertError(type_name,"期望 YAML 标量节点");
+            }
+            return node.Scalar();
+        }
+        else if constexpr (std::is_arithmetic_v<T>){
+            if(!node.IsDefined()){
+                detail::ThrowConvertError(type_name,"期望 YAML 标量节点");
+            }
+            return detail::ParseArithmetic<T>(detail::ScalarText(node,type_name),type_name);
+        }
+        else if constexpr (std::is_enum_v<T>){
+            if(!node.IsDefined()){
+                detail::ThrowConvertError(type_name,"期望 YAML 标量节点");
+            }
+            using Underlying = std::underlying_type_t<T>;
+            return static_cast<T>(detail::ParseArithmetic<Underlying>(detail::ScalarText(node,type_name),type_name));
+        }
+        else{
+            static_assert(detail::YamlDecodable<T>,"该类型需要特化 htserver::ConfigConvert<T> 或 YAML::convert<T>");
+            T value{};
+            if(!node.IsDefined() || !YAML::convert<T>::decode(node,value)){
+                detail::ThrowConvertError(type_name,"YAML::convert 解码失败");
+            }
+            return value;
+        }
+    }
+
+    [[nodiscard]] static YAML::Node ToNode(const T& value){
+        if constexpr (std::is_arithmetic_v<T> && !std::is_same_v<std::remove_cv_t<T>,bool>){
+            return detail::ArithmeticToNode(value);
+        }
+        else if constexpr (std::is_enum_v<T>){
+            return detail::ArithmeticToNode(static_cast<std::underlying_type_t<T>>(value));
+        }
+        else{
+            static_assert(detail::YamlEncodable<T>,"该类型需要特化 htserver::ConfigConvert<T> 或提供 YAML::convert<T>::encode");
+            return YAML::Node(value);
+        }
+    }
+
+};
+
+namespace detail{
+
+template<typename C>
+concept Reservable = requires(C& container, std::size_t count)
+{
+    container.reserve(count);
+};
+
+template <typename C>
+concept BackEmplaceable =requires(C& container, typename C::value_type&& value)
+{
+    container.emplace_back(std::move(value));
+};
+
+template<typename Container>
+class SequenceConvert{
+public:
+    using value_type = typename Container::value_type;
+    [[nodiscard]] static Container FromNode(const YAML::Node& node){
+        if(!node.IsSequence()){
+            ThrowConvertError(TypeName<Container>(),"期望 YAML 序列化节点");
+        }
+
+        Container container;
+        if constexpr (Reservable<Container>){
+            container.reserve(node.size());
+        }
+        for(const YAML::Node& item : node){
+            if constexpr (BackEmplaceable<Container>){
+                container.emplace_back(ConfigConvert<value_type>::FromNode(item));
+            }
+            else{
+                container.emplace(ConfigConvert<value_type>::FromNode(item));
+            }
+        }
+    }
+
+    [[nodiscard]] static YAML::NodeType ToNode(const Container& container){
+        YAML::Node node(YAML::NodeType::Sequence);
+        for(const value_type& item : container){
+            node.push_back(ConfigConvert<value_type>::ToNode(item));
+        }
+        return node;
+    }  
+};
+
+template<typename Map>
+class StringMapConvert{
+public:
+    using mapped_type = typename Map::mapped_type;
+    [[nodiscard]] static Map FromNode(const YAML::Node node){
+        if(!node.IsMap()){
+            ThrowConvertError(TypeName<Map>(),"期望 YAML 映射节点");
+        }
+        Map container;
+        if constexpr (Reservable<Map>){
+            container.reserve(node.size());
+        }
+
+        for(const auto& item : node){
+            if(!item.first.IsScalar()){
+                ThrowConvertError(TypeName<Map>(), "映射的键必须是标量");
+            }
+            container.emplace(item.first.Scalar(),ConfigConvert<mapped_type>::FromNode(item.second));
+        }
+        return container;
+    }
+
+    [[nodiscard]] static YAML::Node ToNode(const Map& container){
+        YAML::Node node(YAML::NodeType::Map);
+        for(const auto& [key,value] : container){
+            node[key] = ConfigConvert<mapped_type>::ToNode(value);
+        }
+        return node;
+    }
+};
+
 }
-}
+
+template<typename T , typename A>
+class ConfigConvert<std::vector<T,A>>: public detail::SequenceConvert<std::vector<T,A>>
+{};
+
+template <typename T, typename A>
+class ConfigConvert<std::list<T, A>> : public detail::SequenceConvert<std::list<T, A>>
+{};
+
+template <typename T, typename C, typename A>
+class ConfigConvert<std::set<T, C, A>> : public detail::SequenceConvert<std::set<T, C, A>>
+{};
+
+template <typename T, typename H, typename E, typename A>
+class ConfigConvert<std::unordered_set<T, H, E, A>> : public detail::SequenceConvert<std::unordered_set<T, H, E, A>>
+{};
+
+template <typename T, typename C, typename A>
+class ConfigConvert<std::map<std::string, T, C, A>> : public detail::StringMapConvert<std::map<std::string, T, C, A>>
+{};
+
+template <typename T, typename H, typename E, typename A>
+class ConfigConvert<std::unordered_map<std::string, T, H, E, A>> : public detail::StringMapConvert<std::unordered_map<std::string, T, H, E, A>>
+{};
+
+} // namespace htserver
 #endif //HTSERVER_INCLUDE_HTSERVER_CONFIG_CONVERT_H
