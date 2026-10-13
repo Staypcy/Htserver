@@ -2,9 +2,27 @@
 #include<string>
 #include<string_view>
 
+#include<htserver/config/config_var.h>
 #include<htserver/config/convert.h>
+#include<htserver/logger/log.h>
 
 namespace htserver::detail{
+
+namespace{
+
+LoggerPtr ConfigLogger(){
+    static LoggerPtr logger = GetLogger("system");
+    return logger;
+}
+} // namespace
+
+void ReportConfigError(std::string_view operation, std::string_view name, std::string_view type_name, std::string_view reason){
+    auto logger = ConfigLogger();
+    HTSERVER_LOG_ERROR(logger) << operation << " failed:"
+                           << " name=" << (name.empty() ? std::string_view("<none>") : name)
+                           << " type=" << (type_name.empty() ? std::string_view("<none>") : type_name)
+                           << " reason=" << reason;
+}
 
 void ThrowConvertError(std::string_view type_name, std::string_view reason, std::string_view value){
     std::string message;
