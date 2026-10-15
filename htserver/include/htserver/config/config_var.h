@@ -51,7 +51,7 @@ public:
 
     virtual void removeListener(ListenerId id) = 0;
     virtual void clearListeners() = 0;
-    [[nodiscard]] virtual std::size_t listenerCount()const = 0;
+    [[nodiscard]] virtual std::size_t listenersCount()const = 0;
 
 private:
     std::string m_name;
@@ -143,7 +143,7 @@ public:
         m_listeners.clear();
     }
 
-    [[nodiscard]] std::size_t listenerCount() const override
+    [[nodiscard]] std::size_t listenersCount() const override
     {
         std::lock_guard<std::mutex> lock(m_listenersMutex);
         return m_listeners.size();
