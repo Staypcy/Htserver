@@ -80,10 +80,10 @@ public:
 
     bool setValue(T value){
         auto new_value = std::make_shared<const T>(std::move(value));
-
+        std::shared_ptr<const T>old_value;
         {
             std::lock_guard<std::mutex>lock(m_writeMutex);
-            auto old_value = m_value.load(std::memory_order_relaxed);
+            old_value = m_value.load(std::memory_order_relaxed);
             if constexpr (std::equality_comparable<T>){
                 if(*old_value == *new_value){
                     return false;
@@ -152,7 +152,7 @@ private:
     struct ListenerEntry{
         ListenerId m_id{0};
         std::shared_ptr<const OnChange> m_callback;
-    }
+    };
 
     void notify(const T& old_value, const T& new_value){
         std::vector<ListenerId> snapshot;
@@ -176,7 +176,7 @@ private:
     std::atomic<std::shared_ptr<const T>> m_value;
     std::mutex m_writeMutex;
     mutable std::mutex m_listenersMutex;
-    std::vector<LIstenerEntry> m_listeners;
+    std::vector<ListenerEntry> m_listeners;
 };
 } // namespace htserver
 

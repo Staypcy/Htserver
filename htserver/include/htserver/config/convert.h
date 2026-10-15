@@ -103,13 +103,13 @@ public:
           
         if constexpr (std::is_same_v<std::remove_cv_t<T>,bool>){
             bool value = false;
-            if(!node.IsDefined() || !detail::ParseBool(node,value)){
+            const std::string& text = detail::ScalarText(node,type_name);
+            if(!node.IsDefined() || !detail::ParseBool(text,value)){
                 detail::ThrowConvertError(type_name,"无法解析为布尔值");
             }
-            value = detail::ScalarText(node,type_name);
             return value;
         }
-        else if constexpr (std::is_same_v<T,std::string){
+        else if constexpr (std::is_same_v<T,std::string>){
             if(!node.IsDefined() || !node.IsScalar()){
                 detail::ThrowConvertError(type_name,"期望 YAML 标量节点");
             }
@@ -190,7 +190,7 @@ public:
         }
     }
 
-    [[nodiscard]] static YAML::NodeType ToNode(const Container& container){
+    [[nodiscard]] static YAML::Node ToNode(const Container& container){
         YAML::Node node(YAML::NodeType::Sequence);
         for(const value_type& item : container){
             node.push_back(ConfigConvert<value_type>::ToNode(item));

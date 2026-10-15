@@ -31,6 +31,8 @@ bool IsValidConfigName(std::string_view name) noexcept{
     return !name.empty()&&name.find_first_not_of(CONFIG_NAME_CHARSET) == std::string::npos;
 }
 
+} // namespace detaill
+
 ConfigVarBase::ConfigVarBase(std::string name, std::string description)
     :m_name(detail::NormalizeConfigName(std::move(name)))
     ,m_description(std::move(description))
@@ -79,6 +81,5 @@ bool ConfigVarBase::fromString(std::string_view value){
     }
     return false;
 }
-} // namespace detail
 
 } // namespace htserver
