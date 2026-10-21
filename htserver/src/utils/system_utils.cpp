@@ -219,7 +219,7 @@ std::string GetBacktrace(int size,int skip,const std::string& prefix){
 #if defined(_WIN32)
     const int capture_size = std::min(size,static_cast<int>(std::numeric_limits<USHORT>::max()));
     std::vector<void*>frames(static_cast<std::size_t>(capture_size));
-    const int frame_count = static_cast<int>(CaptureStrackBacktrace(0,static_cast<DWORD>(frames.size()),frames.data(),nullptr));
+    const int frame_count = static_cast<int>(CaptureStackBackTrace(0,static_cast<DWORD>(frames.size()),frames.data(),nullptr));
     if(frame_count <= 0){
         return {};
     }
@@ -228,10 +228,10 @@ std::string GetBacktrace(int size,int skip,const std::string& prefix){
     const int first_frame = std::clamp(skip,0,frame_count);
 
     std::lock_guard<std::mutex>lock(GetDbgHelpMutex());
-    const DbgHelpContext& context = GetDbgHelpContex();
+    const DbgHelpContext& context = GetDbgHelpContext();
     for(int i= first_frame; i< frame_count;i++){
         stream<<prefix<<"#"<<i-first_frame<<" ";
-        WriteWindowsFrames(stream,context,frames[i],i>0);
+        WriteWindowsFrame(stream,context,frames[i],i>0);
         stream<<'\n';
     }
     return stream.str();

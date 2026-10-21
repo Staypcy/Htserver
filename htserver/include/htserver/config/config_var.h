@@ -53,7 +53,7 @@ public:
     virtual void clearListeners() = 0;
     [[nodiscard]] virtual std::size_t listenersCount()const = 0;
 
-private:
+protected:
     std::string m_name;
     std::string m_description;
 };
@@ -89,14 +89,14 @@ public:
                     return false;
                 }
             }
-            m_value.store(std::memory_order_release);
+            m_value.store(new_value,std::memory_order_release);
         }
 
         notify(*old_value,*new_value);
         return true;
     }
 
-    [[nodiscard]] YAML::Node toNode() const override { return Convert::toNode(*getSnapshot());}
+    [[nodiscard]] YAML::Node toNode() const override { return Convert::ToNode(*getSnapshot());}
 
     bool fromNode(const YAML::Node& node) override{
         try{
@@ -154,8 +154,8 @@ private:
         std::shared_ptr<const OnChange> m_callback;
     };
 
-    void notify(const T& old_value, const T& new_value){
-        std::vector<ListenerId> snapshot;
+    void notify(const T& old_value, const T& new_value)const {
+        std::vector<ListenerEntry> snapshot;
         {
             std::lock_guard<std::mutex> lock(m_listenersMutex);
             snapshot = m_listeners;

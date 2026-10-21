@@ -188,6 +188,7 @@ public:
                 container.emplace(ConfigConvert<value_type>::FromNode(item));
             }
         }
+        return container;
     }
 
     [[nodiscard]] static YAML::Node ToNode(const Container& container){

@@ -19,7 +19,7 @@ public:
             return ;
         }
 
-        if(m_overflow.empty() &&  size + m_size < INLINE_CAPACITY){
+        if(m_overflow.empty() &&  size + m_size <= INLINE_CAPACITY){
             std::memcpy(m_inline.data() + m_size , data , size);
             m_size+=size;
             return ;

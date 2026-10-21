@@ -37,7 +37,7 @@ ConfigVarBase::ConfigVarBase(std::string name, std::string description)
     :m_name(detail::NormalizeConfigName(std::move(name)))
     ,m_description(std::move(description))
 {
-    if(!detail::IsValidConfigName(name)){
+    if(!detail::IsValidConfigName(m_name)){
         detail::ReportConfigError("ConfigVarBase::ConfigVarBase",m_name,{},"配置包含非法字符");
         throw std::invalid_argument("htserver::invalid config name: "+ m_name);
     }
