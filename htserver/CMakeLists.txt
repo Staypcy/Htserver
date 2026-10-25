@@ -39,6 +39,8 @@ endif()
 
 target_link_libraries(htserver PUBLIC yaml-cpp::yaml-cpp)
 
+target_link_libraries(htserver PRIVATE Boost::context)
+
 add_dependencies(htserver htserver_third_party_dependencies)
 
 target_compile_options(htserver PRIVATE

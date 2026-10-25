@@ -39,6 +39,7 @@ include(cmake/htOptions.cmake)
 include(cmake/htserverDependencies.cmake)
 include(cmake/functions.cmake)
 
+add_subdirectory(cmake/boost-context)
 add_subdirectory(htserver)
 if(HTSERVER_BUILD_TESTS)
     enable_testing()

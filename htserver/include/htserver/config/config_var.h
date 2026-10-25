@@ -100,7 +100,7 @@ public:
 
     bool fromNode(const YAML::Node& node) override{
         try{
-            setValue(Convert::fromNode(node));
+            setValue(Convert::FromNode(node));
             return true;
         }catch(const std::exception& e){
             detail::ReportConfigError("ConfigVar::fromNode",m_name,getTypeName(),e.what());
