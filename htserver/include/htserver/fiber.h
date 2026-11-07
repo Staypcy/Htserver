@@ -45,7 +45,7 @@ public:
 
     explicit Fiber(Callback callback);
     Fiber(Callback callback,Options options);
-    ~Fiber();
+    ~Fiber()noexcept;
 
     Fiber(const Fiber& )=delete;
     Fiber& operator=(const Fiber&) =delete;

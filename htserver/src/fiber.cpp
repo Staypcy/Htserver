@@ -99,7 +99,7 @@ void Fiber::initializeContext(Callback callback){
     auto entry = [this](boost::context::fiber&& caller) -> boost::context::fiber{
         m_impl->caller = std::move(caller);
         run();
-        return std::move(m_impl->caller);  
+        return std::move(m_impl->caller);
     };
 
     boost::context::fiber new_context;
