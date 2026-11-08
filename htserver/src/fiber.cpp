@@ -79,16 +79,24 @@ Fiber::Fiber(Callback callback)
 Fiber::Fiber(Callback callback,Options options)
     :m_impl(std::make_unique<Impl>(g_nextFiberId.fetch_add(1,std::memory_order_relaxed) + 1 , options))
 {
-    ValidateStackSize(options.stackSize);
-    initializeContext(std::move(callback));
-    g_fiberCount.fetch_add(1,std::memory_order_relaxed);
+    g_fiberCount.fetch_add(1, std::memory_order_relaxed);
+    try {
+        ValidateStackSize(options.stackSize);
+        initializeContext(std::move(callback));
+    } catch (...) {
+        g_fiberCount.fetch_sub(1, std::memory_order_relaxed);
+        throw;
+    }
 }
 
 Fiber::~Fiber()noexcept{
     if(g_currentFiber == this){
         std::terminate();
     }
-    g_fiberCount.fetch_add(1,std::memory_order_relaxed);
+    if(m_impl->state.load(std::memory_order_acquire) == State::EXEC){
+        std::terminate();    
+    }
+    g_fiberCount.fetch_sub(1,std::memory_order_relaxed);
 }
 
 void Fiber::initializeContext(Callback callback){
