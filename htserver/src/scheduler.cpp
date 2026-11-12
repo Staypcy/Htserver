@@ -25,7 +25,7 @@ Scheduler::Scheduler(std::size_t threads, bool use_caller, const std::string& na
     : m_name(name)
     , m_useCaller(use_caller)
 {
-    if(threads < 0){
+    if(threads == 0){
         throw std::invalid_argument("scheduler requires at least one thread");
     }
 
@@ -40,7 +40,7 @@ Scheduler::Scheduler(std::size_t threads, bool use_caller, const std::string& na
         m_rootFiber = std::make_shared<Fiber>([this](){ run() ;});
         t_scheduler = this;
         t_schedulerFiber = m_rootFiber.get();
-        if(m_name.empty()){
+        if(!m_name.empty()){
             SetThreadName(m_name);
         }
     }
@@ -60,11 +60,11 @@ Scheduler::~Scheduler(){
     }
 }
  
-Scheduler* Scheduler::GetThis(){
+Scheduler* Scheduler::GetThis() noexcept{
     return t_scheduler;
 }
 
-Fiber* Scheduler::GetMainFiber(){
+Fiber* Scheduler::GetMainFiber() noexcept{
     return t_schedulerFiber;
 }
 
@@ -113,6 +113,8 @@ void Scheduler::start(){
                 thread.join();
             }
         }
+
+        throw;
     }
     m_condition.wait(lock,[this](){ return m_registeredWorkers == m_threadCount; });
 }
@@ -150,7 +152,7 @@ Scheduler::FetchResult Scheduler::fetchTask(ThreadId current_thread){
                 }
                 state = (*scheduled_fiber)->getState();
             }
-            if(state == Fiber::State::INIT && state != Fiber::State::READY){
+            if(state != Fiber::State::INIT && state != Fiber::State::READY){
                 ++it;
                 continue;
             }
@@ -160,10 +162,10 @@ Scheduler::FetchResult Scheduler::fetchTask(ThreadId current_thread){
         m_activeThreadCount.fetch_add(1,std::memory_order_acq_rel);
         break;
     }
-    return ;
+    return result;
 } 
 
-void Scheduler::setThis(){
+void Scheduler::setThis() noexcept{
     t_scheduler = this;
 }
 
@@ -277,7 +279,7 @@ void Scheduler::run(){
     t_schedulerFiber = previous_scheduler_fiber;
 }
 
-void Scheduler::taskFinished(){
+void Scheduler::taskFinished() noexcept{
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_activeThreadCount.fetch_sub(1,std::memory_order_acq_rel);
@@ -374,7 +376,7 @@ bool Scheduler::canStopNoLock() const noexcept{
     return m_autoStop.load(std::memory_order_acquire) 
             && m_stopping.load(std::memory_order_acquire)
             && m_tasks.empty()
-            && m_activeThreadCount.load(std::memory_order_acquire);
+            && m_activeThreadCount.load(std::memory_order_acquire) == 0;
 }
 
 void Scheduler::reportFiberFailure(const Fiber::ptr& fiber) const noexcept{
